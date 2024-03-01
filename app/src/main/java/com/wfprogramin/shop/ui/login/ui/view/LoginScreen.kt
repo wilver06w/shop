@@ -3,7 +3,6 @@ package com.wfprogramin.shop.ui.login.ui.view
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,19 +19,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +38,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -57,7 +55,6 @@ import com.google.accompanist.insets.navigationBarsWithImePadding
 import com.wfprogramin.shop.R
 import com.wfprogramin.shop.ui.login.ui.LoginUIState
 import com.wfprogramin.shop.ui.login.ui.viewmodel.LoginViewModel
-import com.wfprogramin.shop.ui.splash.ui.SplashUIState
 import com.wfprogramin.shop.ui.splash.ui.view.PrimaryButton
 import com.wfprogramin.shop.ui.splash.ui.view.SecondaryOutLineButton
 import com.wfprogramin.shop.ui.theme.Shapes
@@ -71,13 +68,10 @@ import com.wfprogramin.shop.util.InputTypeInfo
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = hiltViewModel()) {
+fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = hiltViewModel()) {
 
-    val email: String by quoteViewModel.email.observeAsState(initial = "")
-    val password: String by quoteViewModel.password.observeAsState(initial = "")
-    val isLoading: Boolean by quoteViewModel.isLoading.observeAsState(initial = false)
+    val loginState: LoginUIState by loginViewModel.uiState.collectAsState()
 
-    val loginEnabled: Boolean by quoteViewModel.loginEnabled.observeAsState(initial = false)
 
     val context = LocalContext.current
     val passwordFocusRequester = FocusRequester()
@@ -86,31 +80,36 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        quoteViewModel.toastMessage.collect { message ->
-            Toast.makeText(
-                context,
-                message,
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-
-    }
-    LaunchedEffect(Unit) {
-        quoteViewModel.uiState.collect { uiState ->
+        loginViewModel.uiState.collect { uiState ->
             when (uiState) {
-                is LoginUIState.Error -> {
+                is LoginUIState.ErrorState -> {
                     Toast.makeText(
                         context,
-
-                        uiState.msg,
+                        BasicValues.dataNoCharged,
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
 
-                is LoginUIState.Success -> {
+                is LoginUIState.LoadingState -> {
+//                    coroutineScope.launch {
+//                        AlertDialogExample(icon = Icons.Default.Email,
+//                            onDismissRequest = {},
+//                            onConfirmation = {},
+//                            dialogText = BasicValues.failedRequest,
+//                            dialogTitle = BasicValues.failedRequest
+//                        )
+//                    }
                     Toast.makeText(
                         context,
-                        BasicValues.signSuccess,
+                        BasicValues.loadingData,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+
+                is LoginUIState.SuccessState -> {
+                    Toast.makeText(
+                        context,
+                        "${uiState.model.email} ${uiState.model.password}",
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
@@ -149,14 +148,14 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
                 )
             )
             TextInput(
-                value = email,
+                value = loginState.model.email,
                 InputTypeInfo.Name,
                 keyboardActions = KeyboardActions(onNext = {
                     passwordFocusRequester.requestFocus()
                 }),
                 onTextFieldChange = {
-                    quoteViewModel.onLoginChanged(
-                        email = it, password = password
+                    loginViewModel.onLoginChanged(
+                        email = it, password = loginState.model.password
                     )
                 },
             )
@@ -166,25 +165,25 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
                 )
             )
             TextInput(
-                value = password,
+                value = loginState.model.password,
                 InputTypeInfo.Password,
                 keyboardActions = KeyboardActions(onDone = {
                     focusManager.clearFocus()
                     coroutineScope.launch {
-                        quoteViewModel.onLoginSuccess()
+                        loginViewModel.onLoginSuccess()
                     }
                 }),
                 focusRequester = passwordFocusRequester,
                 onTextFieldChange = {
-                    quoteViewModel.onLoginChanged(
-                        email = email, password = it
+                    loginViewModel.onLoginChanged(
+                        email = loginState.model.email, password = it
                     )
                 },
             )
             TextButton(
                 onClick = {
                     coroutineScope.launch {
-                        quoteViewModel.onLoginError()
+                        loginViewModel.onLoginError()
                     }
                 }, Modifier.align(Alignment.CenterHorizontally)
             ) {
@@ -200,22 +199,16 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
                     24.dp
                 )
             )
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
-                }
-            } else {
-                PrimaryButton(
-                    isEnabled = loginEnabled,
-                    onClick = {
-                        focusManager.clearFocus()
-                        coroutineScope.launch {
-                            quoteViewModel.onLoginSuccess()
-                        }
-                    },
-                    text = BasicValues.next,
-                )
-            }
+            PrimaryButton(
+                isEnabled = loginState.model.loginEnabled,
+                onClick = {
+                    focusManager.clearFocus()
+                    coroutineScope.launch {
+                        loginViewModel.onLoginSuccess()
+                    }
+                },
+                text = BasicValues.next,
+            )
             Spacer(
                 modifier = Modifier.height(
                     16.dp
@@ -266,7 +259,7 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
             TextButton(
                 onClick = {
                     coroutineScope.launch {
-                        quoteViewModel.onLoginError()
+                        loginViewModel.onLoginError()
                     }
                 }, Modifier.align(Alignment.CenterHorizontally)
             ) {
@@ -277,15 +270,45 @@ fun LoginScreen(navController: NavController, quoteViewModel: LoginViewModel = h
 }
 
 @Composable
-fun ItemCircleSocial(imageSource: Int, colorBorder: Color, onClick: () -> Unit) {
-    Box(modifier = Modifier
-        .clip(CircleShape)
-        .border(1.dp, colorBorder, CircleShape)
-        .size(40.dp)
-        .padding(all = 2.dp)
-        .clickable { }
+fun AlertDialogExample(
+    onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+    dialogTitle: String,
+    dialogText: String,
+    icon: ImageVector,
+) {
+    AlertDialog(icon = {
+        Icon(icon, contentDescription = "Example Icon")
+    }, title = {
+        Text(text = dialogTitle)
+    }, text = {
+        Text(text = dialogText)
+    }, onDismissRequest = onDismissRequest, confirmButton = {
+        TextButton(
+            onClick = onConfirmation
+        ) {
+            Text("Confirm")
+        }
+    }, dismissButton = {
+        TextButton(
+            onClick = onDismissRequest
+        ) {
+            Text("Dismiss")
+        }
+    })
+}
 
-    ) {
+@Composable
+fun ItemCircleSocial(imageSource: Int, colorBorder: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .border(1.dp, colorBorder, CircleShape)
+            .size(40.dp)
+            .padding(all = 2.dp)
+            .clickable(onClick = onClick),
+
+        ) {
         Image(
             painter = painterResource(id = imageSource),
             "ic_google",
@@ -295,7 +318,6 @@ fun ItemCircleSocial(imageSource: Int, colorBorder: Color, onClick: () -> Unit) 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextInput(
     value: String,

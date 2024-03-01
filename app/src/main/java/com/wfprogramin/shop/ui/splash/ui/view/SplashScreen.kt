@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import com.google.accompanist.insets.ProvideWindowInsets
 import com.google.accompanist.insets.navigationBarsWithImePadding
 import com.wfprogramin.shop.R
@@ -62,7 +63,7 @@ fun SplashScreen(navController: NavController ,splashViewModel: SplashViewModel 
                 is SplashUIState.SuccessState -> {
                     Toast.makeText(
                         context,
-                        "${BasicValues.signSuccess} ${uiState.model.itemYugiOh}",
+                        BasicValues.signSuccess,
                         Toast.LENGTH_SHORT,
                     ).show()
                     navController.navigate(route = AppScreens.LoginScreen.route)
@@ -146,7 +147,7 @@ fun SplashScreen(navController: NavController ,splashViewModel: SplashViewModel 
 
 @Composable
 fun PrimaryButton(
-    isEnabled: Boolean, onClick: () -> Unit,
+    isEnabled: Boolean = true, onClick: () -> Unit,
     text: String,
 ) {
     Button(onClick = onClick, modifier = Modifier.fillMaxWidth(), enabled = isEnabled) {

@@ -18,6 +18,8 @@ class BasicValues {
         const val didForgetPassword = "¿Olvidaste tu contraseña?"
         const val loginWith = "Ingresa con"
         const val weLoveHavingShop = "Nos encanta tenerte en nuestra tienda"
-        const val wePreparingEverythingPurchase = "Estamos preparando todo  para tu compra"
+        const val wePreparingEverythingPurchase = "Estamos preparando todo para tu compra"
+        const val dataNoCharged = "Data no cargada"
+        const val loadingData = "Cargando data"
     }
 }
